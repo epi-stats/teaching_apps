@@ -152,6 +152,12 @@ SI <- shinyApp(
              newPlot()
           }, height = 700)
     })
+                             
+    observeEvent(input$N,{
+          output$mainPlot <- renderPlot({
+             newPlot()
+          }, height = 700)
+    })                         
     
     observeEvent(input$R0,{
       if(input$R0%%1!=0)

@@ -6,6 +6,10 @@ if(is.null(sessionInfo()$otherPkgs$shiny)){
      library(shiny)
 }
 
+# Set of ask if default is TRUE (some imputation packages change the value)
+if(getOption("device.ask.default")) options(device.ask.default = F)
+
+
 colimp <- "cornflowerblue"
 
 # shiny app

@@ -1,5 +1,8 @@
 library(shiny)
 
+# shape parameter for negative binomial distribution (hetregon contacts), hich numbers approximate Poisson
+nb.shape <- 2
+
 set.seed(1103111)
 
 df <- 1
@@ -106,7 +109,9 @@ SI <- shinyApp(
         if(input$inf==0) newCont <-  sapply(curInf, function(x) 
                 sample(setdiff(1:input$N, x), round(input$R0), replace = F))
        else {
-          rcont <- rpois(length(curInf), input$R0)
+          #rcont <- rpois(length(curInf), input$R0)
+          rcont <- rnbinom(length(curInf), mu = input$R0, shape = nb.shape)                 
+          
           newCont <-  sapply(curInf, function(x) sample(setdiff(1:input$N, x), 
                              max(rcont), replace = F))
           if(!is.null(ncol(newCont)))

@@ -110,7 +110,7 @@ SI <- shinyApp(
                 sample(setdiff(1:input$N, x), round(input$R0), replace = F))
        else {
           #rcont <- rpois(length(curInf), input$R0)
-          rcont <- rnbinom(length(curInf), mu = input$R0, shape = nb.shape)                 
+          rcont <- rnbinom(length(curInf), mu = input$R0, size = nb.shape)                 
           
           newCont <-  sapply(curInf, function(x) sample(setdiff(1:input$N, x), 
                              max(rcont), replace = F))

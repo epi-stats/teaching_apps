@@ -111,7 +111,7 @@ SI <- shinyApp(
        else {
           #rcont <- rpois(length(curInf), input$R0)
           rcont <- rnbinom(length(curInf), mu = input$R0, size = nb.shape)                 
-          
+          if(length(rcont)>0) if(max(rcont)==0) rcont[1] <- 1    
           newCont <-  sapply(curInf, function(x) sample(setdiff(1:input$N, x), 
                              max(rcont), replace = F))
           if(!is.null(ncol(newCont)))

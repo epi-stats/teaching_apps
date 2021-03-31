@@ -29,6 +29,19 @@ SI <- shinyApp(
     
     sidebarLayout(
       sidebarPanel(
+                
+       # store window height in dimensions  
+       tags$head(tags$script(' 
+                                var dimension = [600];
+                                $(document).on("shiny:connected", function(e) {
+                                    dimension[0] = window.innerHeight;
+                                    Shiny.onInputChange("dimension", dimension);
+                                });
+                                $(window).resize(function(e) {
+                                    dimension[0] = window.innerHeight;
+                                    Shiny.onInputChange("dimension", dimension);
+                                });
+                            ')),
         
         p("Disease transmission "),
         sliderInput("N",
@@ -144,19 +157,19 @@ SI <- shinyApp(
     observeEvent(input$go,{
           output$mainPlot <- renderPlot({
              updatePlot()
-          }, height = 700)
+          }, height = ifelse(is.null(input$dimension[1]), 700, input$dimension[1]-6))
     })
 
     observeEvent(input$clear,{
           output$mainPlot <- renderPlot({
              newPlot()
-          }, height = 700)
+          }, height = ifelse(is.null(input$dimension[1]), 700, input$dimension[1]-6))
     })
                              
     observeEvent(input$N,{
           output$mainPlot <- renderPlot({
              newPlot()
-          }, height = 700)
+          }, height = ifelse(is.null(input$dimension[1]), 700, input$dimension[1]-6))
     })                         
     
     observeEvent(input$R0,{

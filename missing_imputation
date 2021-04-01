@@ -9,8 +9,33 @@ if(is.null(sessionInfo()$otherPkgs$shiny)){
 # Set of ask if default is TRUE (some imputation packages change the value)
 if(getOption("device.ask.default")) options(device.ask.default = F)
 
-
+Nsim <- 100 
 colimp <- "cornflowerblue"
+coldif <- "firebrick"
+
+Nsim <- 100 
+colimp <- "cornflowerblue"
+coldif <- "firebrick"
+
+genData <- function(mech, Nmis, imp){
+      n <- 100
+      d <- data.frame(X=runif(n)+rnorm(n))
+      d$Y <- runif(n)*3 + d$X 
+      d$Ym <- d$Y
+      if(mech == "1") d$Ym[sample(1:n, Nmis)] <- NA
+      if(mech == "2") d$Ym[sample(1:n, Nmis, prob=d$X-min(d$X))] <- NA       
+      if(mech == "3") d$Ym[sample(1:n, Nmis, prob=d$Y-min(d$Y))] <- NA
+      d$Yi <- d$Ym
+      if(imp == "2") d$Yi[is.na(d$Ym)] <- mean(d$Ym, na.rm=T)
+      if(imp == "3"){
+          implm <- lm(Ym ~ X, data=d)
+          #summary(implm)
+          pred <- predict(implm, d)
+          d$Yi[is.na(d$Ym)] <- pred[is.na(d$Ym)]
+      }
+      return(d)
+}      
+
 
 # shiny app
 impute <- shinyApp(
@@ -35,7 +60,9 @@ impute <- shinyApp(
                     "Mean imputation" = 2,
                     "Regression imputation" = 3)),
         hr(),
-        actionButton("go", "run", icon("arrow-alt-circle-right")),width=2,
+        actionButton("go", "run", icon("arrow-alt-circle-right")),
+        actionButton("sim", paste0("run ",Nsim,"x"), 
+                icon("arrow-alt-circle-right")),width=2,
       ),           
       mainPanel(
         plotOutput("mainPlot"),
@@ -45,52 +72,70 @@ impute <- shinyApp(
   
   server <- (function(input, output, session) {
     
-    newPlot <- function(){
-      n <- 100
-      d <- data.frame(X=runif(n)+rnorm(n))
-      d$Y <- runif(n)*3 + d$X 
-      Nmis <- as.numeric(input$prop)
-      dm <- d
-      if(input$mech == "1") dm$Y[sample(1:n, Nmis)] <- NA
-      if(input$mech == "2") dm$Y[sample(1:n, Nmis, prob=d$X-min(d$X))] <- NA       
-      if(input$mech == "3") dm$Y[sample(1:n, Nmis, prob=d$Y-min(d$Y))] <- NA
-      
-      di <- dm
-      if(input$imp == "2") di$Y[is.na(di$Y)] <- mean(di$Y, na.rm=T)
-      if(input$imp == "3"){
-          implm <- lm(Y ~ X, data=di)
-          summary(implm)
-          pred <- predict(implm, di)
-          di$Y[is.na(di$Y)] <- pred[is.na(di$Y)]
-      }
-                  
+    newPlot <- function(loops = 1){
+
+      d <- genData(mech = input$mech, Nmis = as.numeric(input$prop), imp = input$imp)
+      #print(d)            
       par(mar=c(4,4,0,0)+0.3)
       layout(matrix(c(1,1,2,2,1,1,3,3), nrow=2, byrow=T))
       plot(d$X, d$Y, col="red", cex=4, lwd=2, xlab="X", ylab="Y")
-      points(dm$X, dm$Y, cex=4, lwd=2)
+      points(d$X, d$Ym, cex=4, lwd=2)
       abline(lm(Y~X, data=d), col="black", lty=1, lwd=4)
-      abline(lm(Y~X, data=di), col=colimp, lty=2, lwd=5)
-      if(input$imp %in% c("2","3")) points(di$X[is.na(dm$Y)], 
-                                           di$Y[is.na(dm$Y)], cex=4, lwd=4, col=colimp)
-      plot(density(di$Y[!is.na(di$Y)], bw=0.2), col=colimp, lwd=3, main="",
+      abline(lm(Yi~X, data=d), col=colimp, lty=2, lwd=5)
+      if(input$imp %in% c("2","3")) points(d$X[is.na(d$Ym)], 
+                                           d$Yi[is.na(d$Ym)], cex=4, lwd=4, col=colimp)
+      plot(density(d$Yi[!is.na(d$Yi)], bw=0.2), col=colimp, lwd=3, main="",
           xlab="")
       mtext("Distribution of Y (black full, blue imputed)", side=1, line=1, cex=1.5)
       lines(density(d$Y, bw=0.2), col="black", lwd=3)   
       
+      res <- rep(NA, 10)
+      res[1] <- mean(d$Y, na.rm=T)
+      res[2] <- mean(d$Yi, na.rm=T)
+      res[3] <- sd(d$Y, na.rm=T)
+      res[4] <- sd(d$Yi, na.rm=T)
+      res[5] <- coef(lm(Y~X, data=d))[2]
+      res[6] <- coef(lm(Yi~X, data=d))[2]
+      res[7:8] <- confint(lm(Y~X, data=d))[2,]
+      res[9:10] <- confint(lm(Yi~X, data=d))[2,]
+      
+      if(loops > 1){                  
+           dM <- replicate(loops-1, genData(mech = input$mech, 
+                  Nmis = as.numeric(input$prop), imp = input$imp), simplify=F)
+           resM <- matrix(NA, loops, 10)
+           resM[loops,] <- res
+           for(i in 1:(loops-1)){
+                    resM[i,1] <- with(dM[[i]], mean(Y, na.rm=T))
+                    resM[i,2] <- with(dM[[i]], mean(Yi, na.rm=T))
+                    resM[i,3] <- with(dM[[i]], sd(Y, na.rm=T))
+                    resM[i,4] <- with(dM[[i]], sd(Yi, na.rm=T))
+                    resM[i,5] <- with(dM[[i]], coef(lm(Y~X))[2])
+                    resM[i,6] <- with(dM[[i]], coef(lm(Yi~X))[2])
+                    resM[i,7:8] <- with(dM[[i]], confint(lm(Y~X))[2,])
+                    resM[i,9:10] <- with(dM[[i]], confint(lm(Yi~X))[2,])
+     
+           }
+           res <<- colMeans(resM)
+      }     
+      
       plot(NA,NA,xlim=0:1,ylim=0:1, xaxt="n",yaxt="n")
-      mtext(c("Full","Imputed"),
-            line=-4, cex=2.5, at=c(0.5, 0.8), col=c("black",colimp))      
-      mtext(c("Mean Y", round(mean(d$Y, na.rm=T),2), round(mean(di$Y, na.rm=T),2)),
-            line=-8, cex=2.5, at=c(0.2, 0.5, 0.8), col=c("black","black",colimp))
-      mtext(c("SD Y", round(sd(d$Y, na.rm=T),2), round(sd(di$Y, na.rm=T),2)),
-            line=-13, cex=2.5, at=c(0.2, 0.5, 0.8), col=c("black","black",colimp)) 
-      mtext(c("Coef Y~X", round(coef(lm(Y~X, data=d))[2],2),
-              round(coef(lm(Y~X, data=di))[2],2)),
-           line=-18, cex=2.5, at=c(0.2, 0.5, 0.8), col=c("black","black",colimp))           
-      mtext(c("95% CI Y~X", round(confint(lm(Y~X, data=d))[2,],2),
-               round(confint(lm(Y~X, data=di))[2,],2)),
-            line=-24, cex=2, at=c(0.16, 0.43,0.57, 0.73, 0.87), 
-            col=c("black","black","black",colimp,colimp))                          
+      mtext(c("Full",ifelse(input$imp=="1","Av. Case","Imputed"), "%-diff"),
+            line=-4, cex=2, at=c(0.45, 0.65, 0.9), col=c("black",colimp,coldif))      
+      mtext(c("Mean Y", round(res[1],2), round(res[2],2), round(res[2]/res[1]*100-100)),
+            line=-8,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("SD Y", round(res[3],2), round(res[4],2),round(res[4]/res[3]*100-100)),
+            line=-13,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("Coef Y~X", round(res[5],2), round(res[6],2),round(res[6]/res[5]*100-100)),
+           line=-18,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("95% CI Y~X", round(res[7:8],2),
+               round(res[9:10],2)),
+            line=-23, cex=1.6, at=c(0.14, 0.4,0.5, 0.6, 0.7), 
+            col=c("black","black","black",colimp,colimp))   
+      mtext(c("Width CI", round(diff(res[7:8]),2),
+               round(diff(res[9:10]),2), round(diff(res[9:10])/diff(res[7:8])*100-100)),
+            line=-28,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      if(loops > 1) mtext(paste("Mean of", loops,"simulations"), 
+                          side=1, line=-1.2, col="red", cex=1)                           
     }
 
 
@@ -99,7 +144,11 @@ impute <- shinyApp(
              newPlot()
           }, height = 700)
     })
-
+    observeEvent(input$sim,{
+          output$mainPlot <- renderPlot({
+             newPlot(loops = Nsim)
+          }, height = 700)
+    })
   })
   
 )

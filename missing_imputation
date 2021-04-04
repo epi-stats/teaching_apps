@@ -29,6 +29,13 @@ genData <- function(mech, Nmis, imp){
           pred <- predict(implm, d)
           d$Yi[is.na(d$Ym)] <- pred[is.na(d$Ym)]
       }
+      if(imp == "4"){
+          implm <- lm(Ym ~ X, data=d)
+          pred <- predict(implm, d)
+          rse <- summary(implm)$sigma
+          pred.rand <- rnorm(100, mean=pred, sd=rse)
+          d$Yi[is.na(d$Ym)] <- pred.rand[is.na(d$Ym)]
+      }
       return(d)
 }      
 
@@ -70,7 +77,8 @@ impute <- shinyApp(
                     "Imputation meachnisem",
                     c("No (available case)" = 1, 
                     "Mean imputation" = 2,
-                    "Regression imputation" = 3)),
+                    "Regression imputation" = 3,
+                    "Random regression imp." = 4)),
         hr(),
         actionButton("go", "run", icon("arrow-alt-circle-right")),
         actionButton("sim", paste0("run ",Nsim,"x"), 
@@ -94,7 +102,7 @@ impute <- shinyApp(
       points(d$X, d$Ym, cex=4, lwd=2)
       abline(lm(Y~X, data=d), col="black", lty=1, lwd=4)
       abline(lm(Yi~X, data=d), col=colimp, lty=2, lwd=5)
-      if(input$imp %in% c("2","3")) points(d$X[is.na(d$Ym)], 
+      if(input$imp %in% c("2","3","4")) points(d$X[is.na(d$Ym)], 
                                            d$Yi[is.na(d$Ym)], cex=4, lwd=4, col=colimp)
       plot(density(d$Yi[!is.na(d$Yi)], bw=0.2), col=colimp, lwd=3, main="",
           xlab="")

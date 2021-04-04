@@ -20,7 +20,7 @@ genData <- function(mech, Nmis, imp){
       d$Ym <- d$Y
       if(mech == "1") d$Ym[sample(1:n, Nmis)] <- NA
       if(mech == "2") d$Ym[sample(1:n, Nmis, prob=d$X-min(d$X))] <- NA       
-      if(mech == "3") d$Ym[sample(1:n, Nmis, prob=d$Y-min(d$Y))] <- NA
+      if(mech == "3") d$Ym[sample(1:n, Nmis, prob=(d$Y-min(d$Y))*2)] <- NA
       d$Yi <- d$Ym
       if(imp == "2") d$Yi[is.na(d$Ym)] <- mean(d$Ym, na.rm=T)
       if(imp == "3"){

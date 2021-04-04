@@ -9,11 +9,7 @@ if(is.null(sessionInfo()$otherPkgs$shiny)){
 # Set of ask if default is TRUE (some imputation packages change the value)
 if(getOption("device.ask.default")) options(device.ask.default = F)
 
-Nsim <- 100 
-colimp <- "cornflowerblue"
-coldif <- "firebrick"
-
-Nsim <- 100 
+Nsim <- 50 
 colimp <- "cornflowerblue"
 coldif <- "firebrick"
 
@@ -35,6 +31,22 @@ genData <- function(mech, Nmis, imp){
       }
       return(d)
 }      
+
+calcRes <- function(d){
+      res <- rep(NA, 10)
+      res[1] <- mean(d$Y, na.rm=T)
+      res[2] <- mean(d$Yi, na.rm=T)
+      res[3] <- sd(d$Y, na.rm=T)
+      res[4] <- sd(d$Yi, na.rm=T)
+      lmY <- lm(Y~X, data=d)
+      lmYi <- lm(Yi~X, data=d)
+      res[5] <- coef(lmY)[2]
+      res[6] <- coef(lmYi)[2]
+      res[7:8] <- confint(lmY)[2,]
+      res[9:10] <- confint(lmYi)[2,]
+      return(res)
+}     
+
 
 
 # shiny app
@@ -89,34 +101,15 @@ impute <- shinyApp(
       mtext("Distribution of Y (black full, blue imputed)", side=1, line=1, cex=1.5)
       lines(density(d$Y, bw=0.2), col="black", lwd=3)   
       
-      res <- rep(NA, 10)
-      res[1] <- mean(d$Y, na.rm=T)
-      res[2] <- mean(d$Yi, na.rm=T)
-      res[3] <- sd(d$Y, na.rm=T)
-      res[4] <- sd(d$Yi, na.rm=T)
-      res[5] <- coef(lm(Y~X, data=d))[2]
-      res[6] <- coef(lm(Yi~X, data=d))[2]
-      res[7:8] <- confint(lm(Y~X, data=d))[2,]
-      res[9:10] <- confint(lm(Yi~X, data=d))[2,]
+      res <- calcRes(d)
       
-      if(loops > 1){                  
+      if(loops > 1){    
+           
            dM <- replicate(loops-1, genData(mech = input$mech, 
                   Nmis = as.numeric(input$prop), imp = input$imp), simplify=F)
-           resM <- matrix(NA, loops, 10)
-           resM[loops,] <- res
-           for(i in 1:(loops-1)){
-                    resM[i,1] <- with(dM[[i]], mean(Y, na.rm=T))
-                    resM[i,2] <- with(dM[[i]], mean(Yi, na.rm=T))
-                    resM[i,3] <- with(dM[[i]], sd(Y, na.rm=T))
-                    resM[i,4] <- with(dM[[i]], sd(Yi, na.rm=T))
-                    resM[i,5] <- with(dM[[i]], coef(lm(Y~X))[2])
-                    resM[i,6] <- with(dM[[i]], coef(lm(Yi~X))[2])
-                    resM[i,7:8] <- with(dM[[i]], confint(lm(Y~X))[2,])
-                    resM[i,9:10] <- with(dM[[i]], confint(lm(Yi~X))[2,])
-     
-           }
-           res <<- colMeans(resM)
-      }     
+           res <- rowMeans(cbind(sapply(dM, calcRes),res))  
+
+      }  
       
       plot(NA,NA,xlim=0:1,ylim=0:1, xaxt="n",yaxt="n")
       mtext(c("Full",ifelse(input$imp=="1","Av. Case","Imputed"), "%-diff"),

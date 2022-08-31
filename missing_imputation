@@ -16,8 +16,10 @@ coldif <- "firebrick"
 genData <- function(mech, Nmis, imp){
       n <- 100
       d <- data.frame(X=runif(n)+rnorm(n))
-      d$Y <- runif(n)*3 + d$X 
-      d$Ym <- d$Y
+      # d$Y <- runif(n)*3 + d$X 
+      # d$Ym <- d$Y
+      d <- data.frame(MASS::mvrnorm(n = 100, mu = c(0,1), Sigma=matrix(c(1,0.4,0.4,1),nrow=2)))     
+      colnames(d) <- LETTERS[24:25]
       if(mech == "1") d$Ym[sample(1:n, Nmis)] <- NA
       if(mech == "2") d$Ym[sample(1:n, Nmis, prob=d$X-min(d$X))] <- NA       
       if(mech == "3") d$Ym[sample(1:n, Nmis, prob=(d$Y-min(d$Y))*2)] <- NA

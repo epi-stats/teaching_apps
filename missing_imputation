@@ -9,7 +9,7 @@ if(is.null(sessionInfo()$otherPkgs$shiny)){
 # Set of ask if default is TRUE (some imputation packages change the value)
 if(getOption("device.ask.default")) options(device.ask.default = F)
 
-Nsim <- 100 
+Nsim <- 60 
 colimp <- "cornflowerblue"
 coldif <- "firebrick"
 

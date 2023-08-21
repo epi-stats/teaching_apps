@@ -14,10 +14,10 @@ colimp <- "cornflowerblue"
 coldif <- "firebrick"
 
 genData <- function(mech, Nmis, imp){
-      n <- 100
+      n <- 150
       # d <- data.frame(X=runif(n)+rnorm(n))
       # d$Y <- runif(n)*3 + d$X 
-      d <- data.frame(MASS::mvrnorm(n = 100, mu = c(0,1), Sigma=matrix(c(1,0.4,0.4,1),nrow=2)))     
+      d <- data.frame(MASS::mvrnorm(n = n, mu = c(1,1), Sigma=matrix(c(0.55,0.55,0.55,0.855),nrow=2)))
       colnames(d) <- LETTERS[24:25]
       d$Ym <- d$Y
       if(mech == "1") d$Ym[sample(1:n, Nmis)] <- NA
@@ -27,7 +27,7 @@ genData <- function(mech, Nmis, imp){
       if(imp == "2") d$Yi[is.na(d$Ym)] <- mean(d$Ym, na.rm=T)
       if(imp == "3"){
           implm <- lm(Ym ~ X, data=d)
-          #summary(implm)
+
           pred <- predict(implm, d)
           d$Yi[is.na(d$Ym)] <- pred[is.na(d$Ym)]
       }
@@ -125,19 +125,29 @@ impute <- shinyApp(
       plot(NA,NA,xlim=0:1,ylim=0:1, xaxt="n",yaxt="n")
       mtext(c("Full",ifelse(input$imp=="1","Av. Case","Imputed"), "%-diff"),
             line=-4, cex=2, at=c(0.45, 0.65, 0.9), col=c("black",colimp,coldif))      
-      mtext(c("Mean Y", round(res[1],2), round(res[2],2), round(res[2]/res[1]*100-100)),
-            line=-8,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
-      mtext(c("SD Y", round(res[3],2), round(res[4],2),round(res[4]/res[3]*100-100)),
-            line=-13,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
-      mtext(c("Coef Y~X", round(res[5],2), round(res[6],2),round(res[6]/res[5]*100-100)),
+      mtext(c("Mean Y",
+              format(round(res[1],2),nsmall=2),
+              format(round(res[2],2),nsmall=2),
+              round(res[2]/res[1]*100-100)),
+              line=-8,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("SD Y",
+              format(round(res[3],2),nsmall=2),
+              format(round(res[4],2),nsmall=2),
+              round(res[4]/res[3]*100-100)),
+              line=-13,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("Coef Y~X",
+              format(round(res[5],2),nsmall=2),
+              format(round(res[6],2),nsmall=2),
+              round(res[6]/res[5]*100-100)),
            line=-18,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
-      mtext(c("95% CI Y~X", round(res[7:8],2),
-               round(res[9:10],2)),
-            line=-23, cex=1.6, at=c(0.14, 0.4,0.5, 0.6, 0.7), 
-            col=c("black","black","black",colimp,colimp))   
-      mtext(c("Width CI", round(diff(res[7:8]),2),
-               round(diff(res[9:10]),2), round(diff(res[9:10])/diff(res[7:8])*100-100)),
-            line=-28,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
+      mtext(c("95% CI Y~X", round(res[7:8],2), round(res[9:10],2)),
+            line=-23, cex=1.6, at=c(0.14, 0.4,0.5, 0.6, 0.7),
+            col=c("black","black","black",colimp,colimp))
+      mtext(c("Width CI",
+              format(round(diff(res[7:8]),2),nsmall=2),
+              format(round(diff(res[9:10]),2),nsmall=2),
+              round(diff(res[9:10])/diff(res[7:8])*100-100)),
+              line=-28,cex=2,at=c(0.2,0.45,0.65,0.9),col=c("black","black",colimp, coldif))
       if(loops > 1) mtext(paste("Mean of", loops,"simulations"), 
                           side=1, line=-1.2, col="red", cex=1)                           
     }

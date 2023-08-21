@@ -14,7 +14,7 @@ colimp <- "cornflowerblue"
 coldif <- "firebrick"
 
 genData <- function(mech, Nmis, imp){
-      n <- 150
+      n <- 120
       # d <- data.frame(X=runif(n)+rnorm(n))
       # d$Y <- runif(n)*3 + d$X 
       d <- data.frame(MASS::mvrnorm(n = n, mu = c(1,1), Sigma=matrix(c(0.55,0.55,0.55,0.855),nrow=2)))
